@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#08090e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Spese Coppia">
+  <meta name="description" content="Registro spese condiviso per coppie">
+  <title>Spese Coppia</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, set, get, push, remove, onValue, off } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    // ── CONFIG ── Sostituisci con la tua config Firebase ──
+    const firebaseConfig = {
+  apiKey: "AIzaSyByZKwgTDLrVxsbZ2Cw_00uAAgCrym7cfQ",
+  authDomain: "spese-di-coppia.firebaseapp.com",
+  databaseURL: "https://spese-di-coppia-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "spese-di-coppia",
+  storageBucket: "spese-di-coppia.firebasestorage.app",
+  messagingSenderId: "158768561733",
+  appId: "1:158768561733:web:7e104fa828d75533962d2c",
+  measurementId: "G-8BPZ06RZSV"
+};
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    window.__db = db;
+    window.__dbRef = ref;
+    window.__dbSet = set;
+    window.__dbGet = get;
+    window.__dbPush = push;
+    window.__dbRemove = remove;
+    window.__dbOnValue = onValue;
+    window.__dbOff = off;
+    window.__firebaseReady = true;
+    document.dispatchEvent(new Event("firebase-ready"));
+  </script>
+
+  <style>
+    :root {
+      --bg: #08090e;
+      --bg2: #0d0e18;
+      --bg3: #111220;
+      --border: #1a1b2e;
+      --border2: #242538;
+      --purple: #6c47ff;
+      --purple-soft: #a78bfa;
+      --red: #ff4e6a;
+      --red-soft: #ff8fa0;
+      --green: #00c896;
+      --green-soft: #5eefc0;
+      --amber: #ffb547;
+      --text: #e0e0f0;
+      --text2: #8888aa;
+      --text3: #44445a;
+      --mono: 'Space Mono', monospace;
+      --sans: 'Plus Jakarta Sans', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); overscroll-behavior: none; }
+    body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; }
+    ::-webkit-scrollbar { width: 3px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+    /* ANIMATIONS */
+    @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(10px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+    @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+
+    .fade-up { animation: fadeUp .35s ease forwards; }
+    .slide-up { animation: slideUp .28s ease forwards; }
+
+    /* SCREENS */
+    .screen { display: none; flex-direction: column; height: 100vh; }
+    .screen.active { display: flex; }
+
+    /* ── SETUP SCREEN ── */
+    #setup-screen { align-items: center; justify-content: center; padding: 24px; background: var(--bg); }
+    .setup-logo { font-size: 52px; margin-bottom: 16px; }
+    .setup-title { font-size: 26px; font-weight: 700; color: var(--text); margin-bottom: 4px; letter-spacing: -0.5px; }
+    .setup-sub { font-size: 13px; color: var(--text3); margin-bottom: 40px; }
+    .setup-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 20px; padding: 28px 24px; width: 100%; max-width: 360px; }
+    .field-label { font-size: 10px; color: var(--text3); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; display: block; }
+    .inp { background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; color: var(--text); font-family: var(--sans); font-size: 15px; width: 100%; outline: none; transition: border-color .2s; }
+    .inp:focus { border-color: var(--purple); }
+    .inp::placeholder { color: var(--text3); }
+    .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .profile-btn { background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 16px 8px; color: var(--text3); font-family: var(--sans); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .2s; text-align: center; }
+    .profile-btn:hover { border-color: var(--border2); color: var(--text2); }
+    .profile-btn.selected { background: var(--purple)18; border-color: var(--purple)88; color: var(--purple-soft); }
+    .profile-avatar { font-size: 26px; display: block; margin-bottom: 6px; }
+    .btn-primary { width: 100%; background: linear-gradient(135deg, var(--purple), #9c6eff); color: #fff; border: none; border-radius: 12px; padding: 15px; font-family: var(--sans); font-size: 15px; font-weight: 700; cursor: pointer; letter-spacing: 0.3px; transition: opacity .2s; margin-top: 4px; }
+    .btn-primary:hover { opacity: .9; }
+    .btn-primary:active { opacity: .8; transform: scale(.99); }
+    .err-msg { color: var(--red); font-size: 12px; margin-top: -4px; }
+
+    /* ── MAIN APP ── */
+    #app-screen { background: var(--bg); }
+    .app-scroll { flex: 1; overflow-y: auto; padding-bottom: 80px; }
+
+    /* HEADER */
+    .app-header { padding: 52px 22px 0; }
+    .header-top { display: flex; justify-content: space-between; align-items: center; }
+    .header-profile { display: flex; align-items: center; gap: 10px; }
+    .avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .avatar-nico { background: linear-gradient(135deg, var(--purple), var(--purple-soft)); }
+    .avatar-lucia { background: linear-gradient(135deg, #ff6b9d, #ffb3cc); }
+    .profile-name { font-size: 15px; color: var(--text); font-weight: 600; }
+    .profile-code { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+    .header-actions { display: flex; gap: 8px; }
+    .icon-btn { width: 36px; height: 36px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; transition: all .2s; }
+    .icon-btn:hover { border-color: var(--border2); }
+    .icon-btn.spinning { animation: spin 1s linear infinite; }
+
+    /* HERO BALANCE */
+    .hero { margin: 24px 22px 0; }
+    .hero-label { font-size: 10px; color: var(--text3); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+    .hero-amount { font-size: 44px; font-weight: 700; line-height: 1; letter-spacing: -2px; transition: color .3s; }
+    .hero-amount.credit { color: var(--red); }
+    .hero-amount.debt { color: var(--amber); }
+    .hero-amount.zero { color: var(--green); }
+    .hero-sub { font-size: 13px; color: var(--text3); margin-top: 6px; }
+
+    /* STATS ROW */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 18px 22px 0; }
+    .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; }
+    .stat-label { font-size: 9px; color: var(--text3); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 5px; line-height: 1.3; }
+    .stat-value { font-size: 15px; font-weight: 700; }
+
+    /* SECTION */
+    .section { margin: 20px 22px 0; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .section-title { font-size: 10px; color: var(--text3); letter-spacing: 2px; text-transform: uppercase; }
+    .section-action { font-size: 12px; color: var(--purple-soft); font-weight: 600; cursor: pointer; }
+
+    /* CATEGORY BARS */
+    .cat-bar { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-bottom: 8px; }
+    .cat-bar-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .cat-bar-name { font-size: 13px; color: var(--text2); }
+    .cat-bar-val { font-size: 13px; color: var(--text); font-weight: 600; }
+    .cat-bar-track { height: 4px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+    .cat-bar-fill { height: 100%; border-radius: 4px; transition: width .6s ease; }
+
+    /* TRANSACTION LIST */
+    .tx-list { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+    .tx-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); animation: fadeUp .25s ease; }
+    .tx-item:last-child { border-bottom: none; }
+    .tx-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .tx-info { flex: 1; min-width: 0; }
+    .tx-name { font-size: 14px; color: var(--text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tx-meta { display: flex; gap: 6px; align-items: center; margin-top: 4px; flex-wrap: wrap; }
+    .tx-date { font-size: 10px; color: var(--text3); }
+    .badge { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 4px; font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+    .badge-purple { background: var(--purple)18; color: var(--purple-soft); }
+    .badge-red { background: var(--red)15; color: var(--red-soft); }
+    .badge-green { background: var(--green)15; color: var(--green-soft); }
+    .badge-amber { background: var(--amber)15; color: var(--amber); }
+    .tx-right { text-align: right; flex-shrink: 0; }
+    .tx-amount { font-size: 15px; font-weight: 700; }
+    .tx-quota { font-size: 11px; color: var(--text3); margin-top: 3px; }
+    .tx-delete { font-size: 11px; color: var(--text3); cursor: pointer; margin-top: 4px; padding: 0; background: none; border: none; font-family: var(--sans); }
+    .tx-delete:hover { color: var(--red); }
+
+    /* EMPTY STATE */
+    .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; }
+    .empty-icon { font-size: 36px; margin-bottom: 12px; }
+    .empty-text { font-size: 14px; color: var(--text3); text-align: center; line-height: 1.6; }
+
+    /* STATUS BANNER */
+    .status-banner { margin: 12px 22px 0; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+    .status-banner.credit { background: var(--red)10; border: 1px solid var(--red)30; }
+    .status-banner.debt { background: var(--amber)10; border: 1px solid var(--amber)30; }
+    .status-banner.zero { background: var(--green)10; border: 1px solid var(--green)30; }
+    .status-icon { font-size: 28px; flex-shrink: 0; }
+    .status-text-main { font-size: 15px; font-weight: 600; }
+    .status-text-sub { font-size: 12px; color: var(--text3); margin-top: 3px; }
+
+    /* BOTTOM NAV */
+    .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--bg2); border-top: 1px solid var(--border); display: flex; padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); gap: 4px; z-index: 100; }
+    .nav-btn { flex: 1; background: transparent; border: none; border-radius: 12px; padding: 10px 4px; cursor: pointer; transition: all .2s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .nav-btn.active { background: var(--purple)15; }
+    .nav-btn-icon { font-size: 18px; }
+    .nav-btn-label { font-size: 9px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; font-family: var(--sans); font-weight: 600; transition: color .2s; }
+    .nav-btn.active .nav-btn-label { color: var(--purple-soft); }
+
+    /* FAB */
+    .fab { position: fixed; bottom: calc(70px + env(safe-area-inset-bottom)); right: 22px; width: 52px; height: 52px; background: linear-gradient(135deg, var(--purple), #9c6eff); border: none; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; cursor: pointer; box-shadow: 0 6px 24px var(--purple)55; transition: transform .2s, opacity .2s; z-index: 99; }
+    .fab:hover { transform: scale(1.05); }
+    .fab:active { transform: scale(.96); }
+
+    /* MODAL / DRAWER */
+    .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 200; display: none; align-items: flex-end; backdrop-filter: blur(4px); }
+    .drawer-overlay.open { display: flex; animation: fadeUp .2s ease; }
+    .drawer { background: var(--bg2); border: 1px solid var(--border); border-radius: 24px 24px 0 0; padding: 20px 22px calc(24px + env(safe-area-inset-bottom)); width: 100%; max-height: 92vh; overflow-y: auto; animation: slideUp .28s ease; }
+    .drawer-handle { width: 36px; height: 4px; background: var(--border2); border-radius: 4px; margin: 0 auto 20px; }
+    .drawer-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 20px; }
+    .field { margin-bottom: 14px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* RANGE SLIDER */
+    .split-box { background: var(--bg3); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+    .split-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .split-label { font-size: 12px; color: var(--text2); }
+    .split-val { font-size: 16px; color: var(--purple-soft); font-weight: 700; font-family: var(--mono); }
+    input[type=range] { width: 100%; accent-color: var(--purple); }
+    .split-presets { display: flex; gap: 6px; margin-top: 12px; }
+    .split-preset { flex: 1; background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 6px 4px; font-size: 11px; color: var(--text3); cursor: pointer; transition: all .15s; font-family: var(--sans); }
+    .split-preset.active { background: var(--purple)20; border-color: var(--purple)66; color: var(--purple-soft); }
+    .split-amounts { display: flex; justify-content: space-between; margin-top: 10px; font-size: 11px; color: var(--text3); }
+    .split-amounts span { color: var(--text2); }
+
+    /* SELECT */
+    select.inp { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2344445a' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; }
+    select option { background: var(--bg3); color: var(--text); }
+
+    /* TOAST */
+    .toast { position: fixed; bottom: calc(80px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--bg2); border: 1px solid var(--border2); color: var(--text); border-radius: 24px; padding: 10px 20px; font-size: 13px; font-weight: 600; z-index: 999; white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,.5); animation: toastIn .25s ease; display: none; }
+    .toast.show { display: block; }
+    .toast.success { border-color: var(--purple)55; color: var(--purple-soft); }
+    .toast.ok { border-color: var(--green)55; color: var(--green-soft); }
+    .toast.info { border-color: var(--border2); color: var(--text2); }
+
+    /* SYNC DOT */
+    .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: inline-block; animation: pulse 2s infinite; }
+    .sync-dot.offline { background: var(--text3); animation: none; }
+
+    /* LOADING SKELETON */
+    .skeleton { background: linear-gradient(90deg, var(--bg2) 25%, var(--bg3) 50%, var(--bg2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
+
+    /* CONFIG NOTE */
+    .config-note { background: var(--amber)10; border: 1px solid var(--amber)33; border-radius: 14px; padding: 14px 16px; margin: 16px 22px 0; }
+    .config-note-title { font-size: 12px; color: var(--amber); font-weight: 700; margin-bottom: 6px; }
+    .config-note-text { font-size: 11px; color: var(--text3); line-height: 1.6; }
+    .config-note-text a { color: var(--purple-soft); }
+
+    /* TABS content */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeUp .3s ease; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════
+     SETUP SCREEN
+═══════════════════════════════════ -->
+<div id="setup-screen" class="screen active">
+  <div class="setup-logo">💑</div>
+  <div class="setup-title">Spese Coppia</div>
+  <div class="setup-sub">Registro condiviso · Split 50/50</div>
+
+  <div class="setup-card">
+    <div class="field">
+      <label class="field-label">Codice famiglia</label>
+      <input class="inp" id="codice-input" placeholder="es. nicolucia2024" maxlength="20" autocomplete="off" autocapitalize="none">
+      <div style="font-size:11px;color:var(--text3);margin-top:6px">Usate lo stesso codice su entrambi i telefoni</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Sei…</label>
+      <div class="profile-grid">
+        <button class="profile-btn" data-profile="Nico" onclick="selectProfile(this)">
+          <span class="profile-avatar">👨</span>
+          Nico
+        </button>
+        <button class="profile-btn" data-profile="Lucia" onclick="selectProfile(this)">
+          <span class="profile-avatar">👩</span>
+          Lucia
+        </button>
+      </div>
+    </div>
+
+    <div class="err-msg" id="setup-err" style="margin-bottom:12px;display:none"></div>
+    <button class="btn-primary" onclick="handleJoin()">Entra nel registro →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     APP SCREEN
+═══════════════════════════════════ -->
+<div id="app-screen" class="screen">
+  <div class="app-scroll" id="app-scroll">
+
+    <!-- HEADER -->
+    <div class="app-header">
+      <div class="header-top">
+        <div class="header-profile">
+          <div class="avatar" id="header-avatar"></div>
+          <div>
+            <div class="profile-name" id="header-name"></div>
+            <div class="profile-code" id="header-code"></div>
+          </div>
+        </div>
+        <div class="header-actions">
+          <div class="icon-btn" id="sync-btn" onclick="syncData()" title="Aggiorna">🔄</div>
+          <div class="icon-btn" onclick="handleLogout()" title="Esci">🚪</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-label" id="hero-label">Credito netto</div>
+      <div class="hero-amount credit" id="hero-amount">€ 0,00</div>
+      <div class="hero-sub" id="hero-sub">Caricamento…</div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Anticipate da te</div>
+        <div class="stat-value" id="stat-mie" style="color:var(--red)">€ 0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label" id="stat-altre-label">Anticipate</div>
+        <div class="stat-value" id="stat-altre" style="color:var(--amber)">€ 0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Ricevuti</div>
+        <div class="stat-value" id="stat-ricevuti" style="color:var(--green)">€ 0</div>
+      </div>
+    </div>
+
+    <!-- FIREBASE CONFIG NOTE -->
+    <div class="config-note" id="config-note" style="display:none">
+      <div class="config-note-title">⚙️ Configurazione Firebase richiesta</div>
+      <div class="config-note-text">
+        Per salvare i dati in cloud, apri <code>index.html</code> e sostituisci le variabili <code>INSERISCI_*</code> con le tue credenziali Firebase.<br><br>
+        <a href="https://console.firebase.google.com" target="_blank">→ Crea progetto gratuito su Firebase</a><br>
+        <a href="#" onclick="showFirebaseGuide()">→ Leggi la guida rapida</a>
+      </div>
+    </div>
+
+    <!-- TABS CONTENT -->
+    <div id="tab-dashboard" class="tab-content active">
+      <!-- Status banner -->
+      <div class="status-banner credit" id="status-banner" style="display:none">
+        <div class="status-icon" id="status-icon">⏳</div>
+        <div>
+          <div class="status-text-main" id="status-main"></div>
+          <div class="status-text-sub" id="status-sub"></div>
+        </div>
+      </div>
+      <!-- Categories -->
+      <div class="section" id="cat-section" style="display:none">
+        <div class="section-header">
+          <div class="section-title">Per categoria</div>
+        </div>
+        <div id="cat-bars"></div>
+      </div>
+      <!-- Recent -->
+      <div class="section" id="recent-section" style="display:none">
+        <div class="section-header">
+          <div class="section-title">Movimenti recenti</div>
+          <div class="section-action" onclick="switchTab('spese')">Vedi tutto →</div>
+        </div>
+        <div class="tx-list" id="recent-list"></div>
+      </div>
+      <div class="empty" id="dashboard-empty" style="margin:20px 22px">
+        <div class="empty-icon">📋</div>
+        <div class="empty-text">Nessuna spesa ancora.<br>Aggiungi la prima con il tasto +</div>
+      </div>
+    </div>
+
+    <div id="tab-spese" class="tab-content">
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title" id="spese-count">0 spese</div>
+        </div>
+        <div class="tx-list" id="spese-list" style="display:none"></div>
+        <div class="empty" id="spese-empty">
+          <div class="empty-icon">💸</div>
+          <div class="empty-text">Nessuna spesa registrata</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-rimborsi" class="tab-content">
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title" id="rimborsi-count">0 rimborsi</div>
+          <div class="section-action" onclick="openRimborsoDrawer()">+ Aggiungi</div>
+        </div>
+        <div class="tx-list" id="rimborsi-list" style="display:none"></div>
+        <div class="empty" id="rimborsi-empty">
+          <div class="empty-icon">✅</div>
+          <div class="empty-text">Nessun rimborso registrato</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end app-scroll -->
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">
+      <span class="nav-btn-icon">📊</span>
+      <span class="nav-btn-label">Saldo</span>
+    </button>
+    <button class="nav-btn" data-tab="spese" onclick="switchTab('spese')">
+      <span class="nav-btn-icon">💸</span>
+      <span class="nav-btn-label">Spese</span>
+    </button>
+    <button class="nav-btn" data-tab="rimborsi" onclick="switchTab('rimborsi')">
+      <span class="nav-btn-icon">✅</span>
+      <span class="nav-btn-label">Rimborsi</span>
+    </button>
+  </nav>
+
+  <!-- FAB -->
+  <button class="fab" onclick="openSpesaDrawer()">+</button>
+</div>
+
+<!-- ═══════════════════════════════════
+     DRAWER: NUOVA SPESA
+═══════════════════════════════════ -->
+<div class="drawer-overlay" id="spesa-drawer" onclick="closeDrawer('spesa-drawer')">
+  <div class="drawer" onclick="event.stopPropagation()">
+    <div class="drawer-handle"></div>
+    <div class="drawer-title" id="spesa-drawer-title">💸 Nuova Spesa</div>
+
+    <div class="field">
+      <label class="field-label">Descrizione</label>
+      <input class="inp" id="f-desc" placeholder="es. Bolletta luce febbraio">
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label class="field-label">Totale €</label>
+        <input class="inp" id="f-importo" type="number" placeholder="0,00" step="0.01" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label class="field-label">Data</label>
+        <input class="inp" id="f-data" type="date">
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">Categoria</label>
+      <select class="inp" id="f-categoria">
+        <option value="mutuo">🏠 Mutuo</option>
+        <option value="bollette">⚡ Bollette</option>
+        <option value="spesa">🛒 Spesa</option>
+        <option value="assicurazione">🛡️ Assicurazione</option>
+        <option value="auto">🚗 Auto</option>
+        <option value="altro">📌 Altro</option>
+      </select>
+    </div>
+
+    <div class="split-box">
+      <div class="split-top">
+        <div class="split-label">Quota dell'altro</div>
+        <div class="split-val" id="split-pct-display">50%</div>
+      </div>
+      <input type="range" id="split-range" min="0" max="100" step="5" value="50" oninput="updateSplit()">
+      <div class="split-amounts">
+        <span>Tu: <span id="split-tu">€ 0,00</span></span>
+        <span id="split-altro-name">Lucia</span>: <span id="split-altro">€ 0,00</span>
+      </div>
+      <div class="split-presets">
+        <button class="split-preset" onclick="setSplit(0)">0%</button>
+        <button class="split-preset" onclick="setSplit(25)">25%</button>
+        <button class="split-preset active" onclick="setSplit(50)">50%</button>
+        <button class="split-preset" onclick="setSplit(75)">75%</button>
+        <button class="split-preset" onclick="setSplit(100)">100%</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Note (opzionale)</label>
+      <input class="inp" id="f-note" placeholder="es. Acconto, rata extra…">
+    </div>
+
+    <div class="err-msg" id="spesa-err" style="margin-bottom:12px;display:none"></div>
+    <button class="btn-primary" id="save-spesa-btn" onclick="saveSpesa()">Salva spesa</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     DRAWER: RIMBORSO
+═══════════════════════════════════ -->
+<div class="drawer-overlay" id="rimborso-drawer" onclick="closeDrawer('rimborso-drawer')">
+  <div class="drawer" onclick="event.stopPropagation()">
+    <div class="drawer-handle"></div>
+    <div class="drawer-title">✅ Registra Rimborso</div>
+    <div class="grid-2">
+      <div class="field">
+        <label class="field-label">Da</label>
+        <select class="inp" id="r-da">
+          <option value="Lucia">Lucia</option>
+          <option value="Nico">Nico</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">A</label>
+        <select class="inp" id="r-a">
+          <option value="Nico">Nico</option>
+          <option value="Lucia">Lucia</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label class="field-label">Importo €</label>
+        <input class="inp" id="r-importo" type="number" placeholder="0,00" step="0.01" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label class="field-label">Data</label>
+        <input class="inp" id="r-data" type="date">
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">Note (opzionale)</label>
+      <input class="inp" id="r-note" placeholder="es. Bonifico, contanti…">
+    </div>
+    <div class="err-msg" id="rimborso-err" style="margin-bottom:12px;display:none"></div>
+    <button class="btn-primary" style="background:linear-gradient(135deg,#00a87a,#00c896)" onclick="saveRimborso()">Registra rimborso</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════════════════════
+     FIREBASE GUIDE MODAL
+═══════════════════════════════════ -->
+<div class="drawer-overlay" id="firebase-guide" onclick="closeDrawer('firebase-guide')">
+  <div class="drawer" onclick="event.stopPropagation()">
+    <div class="drawer-handle"></div>
+    <div class="drawer-title">⚙️ Guida Firebase</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.8">
+      <p style="margin-bottom:12px"><strong style="color:var(--text)">1.</strong> Vai su <a href="https://console.firebase.google.com" target="_blank" style="color:var(--purple-soft)">console.firebase.google.com</a></p>
+      <p style="margin-bottom:12px"><strong style="color:var(--text)">2.</strong> Crea un nuovo progetto (gratuito)</p>
+      <p style="margin-bottom:12px"><strong style="color:var(--text)">3.</strong> Vai su <em>Build → Realtime Database → Crea database</em> → scegli "Modalità test"</p>
+      <p style="margin-bottom:12px"><strong style="color:var(--text)">4.</strong> Vai su <em>Impostazioni progetto → Le tue app → Aggiungi app Web</em></p>
+      <p style="margin-bottom:12px"><strong style="color:var(--text)">5.</strong> Copia l'oggetto <code style="color:var(--amber)">firebaseConfig</code> e incollalo in <code style="color:var(--amber)">index.html</code> sostituendo i valori <code>INSERISCI_*</code></p>
+      <p style="margin-bottom:12px"><strong style="color:var(--text)">6.</strong> Vai su <em>Realtime Database → Regole</em> e imposta:</p>
+      <pre style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:11px;color:var(--amber);overflow-x:auto;margin-bottom:12px">{
+  "rules": {
+    ".read": true,
+    ".write": true
+  }
+}</pre>
+      <p style="color:var(--text3);font-size:11px">⚠️ Per uso personale è ok. Per maggiore sicurezza, usa Firebase Auth.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONSTANTS ──
+const CATEGORIE = {
+  mutuo:        { label: 'Mutuo',        emoji: '🏠', color: '#6c47ff' },
+  bollette:     { label: 'Bollette',     emoji: '⚡', color: '#ff4e6a' },
+  spesa:        { label: 'Spesa',        emoji: '🛒', color: '#00c896' },
+  assicurazione:{ label: 'Assicurazione',emoji: '🛡️', color: '#ffb547' },
+  auto:         { label: 'Auto',         emoji: '🚗', color: '#a78bfa' },
+  altro:        { label: 'Altro',        emoji: '📌', color: '#8888aa' },
+};
+
+const fmt = n => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n || 0);
+const fmtDate = iso => new Date(iso).toLocaleDateString('it-IT', { day:'2-digit', month:'short', year:'numeric' });
+const todayISO = () => new Date().toISOString().split('T')[0];
+
+// ── STATE ──
+let session = null;   // { profilo, codice }
+let spese = [];
+let rimborsi = [];
+let dbListener = null;
+let firebaseOk = false;
+let currentTab = 'dashboard';
+
+// ── INIT ──
+document.addEventListener('firebase-ready', () => { firebaseOk = true; });
+
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('coppia_session_v2');
+  if (saved) {
+    try {
+      session = JSON.parse(saved);
+      showApp();
+    } catch(e) {}
+  }
+  // Set today on date inputs
+  document.getElementById('f-data').value = todayISO();
+  document.getElementById('r-data').value = todayISO();
+});
+
+// ── SETUP ──
+let selectedProfile = null;
+
+function selectProfile(btn) {
+  document.querySelectorAll('.profile-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedProfile = btn.dataset.profile;
+}
+
+function handleJoin() {
+  const codice = document.getElementById('codice-input').value.trim().toLowerCase();
+  const errEl = document.getElementById('setup-err');
+  errEl.style.display = 'none';
+  if (codice.length < 3) { showErr(errEl, 'Il codice deve avere almeno 3 caratteri'); return; }
+  if (!selectedProfile)  { showErr(errEl, 'Scegli il tuo profilo'); return; }
+  session = { codice, profilo: selectedProfile };
+  localStorage.setItem('coppia_session_v2', JSON.stringify(session));
+  showApp();
+}
+
+function showErr(el, msg) {
+  el.textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+}
+
+function handleLogout() {
+  if (!confirm('Vuoi disconnetterti?')) return;
+  if (dbListener) { window.__dbOff && window.__dbOff(window.__dbRef(window.__db, `famiglie/${session.codice}`)); }
+  session = null;
+  spese = [];
+  rimborsi = [];
+  localStorage.removeItem('coppia_session_v2');
+  document.getElementById('app-screen').classList.remove('active');
+  document.getElementById('setup-screen').classList.add('active');
+}
+
+// ── SHOW APP ──
+function showApp() {
+  const altroNome = session.profilo === 'Nico' ? 'Lucia' : 'Nico';
+  // Header
+  document.getElementById('header-avatar').textContent = session.profilo === 'Nico' ? '👨' : '👩';
+  document.getElementById('header-avatar').className = 'avatar avatar-' + session.profilo.toLowerCase();
+  document.getElementById('header-name').textContent = session.profilo;
+  document.getElementById('header-code').textContent = '🔑 ' + session.codice;
+  document.getElementById('split-altro-name').textContent = altroNome;
+  document.getElementById('stat-altre-label').textContent = 'Anticipate da ' + altroNome;
+  // Rimborso defaults
+  document.getElementById('r-da').value = altroNome;
+  document.getElementById('r-a').value = session.profilo;
+
+  document.getElementById('setup-screen').classList.remove('active');
+  document.getElementById('app-screen').classList.add('active');
+
+  loadData();
+}
+
+// ── DATA ──
+async function loadData() {
+  if (!firebaseOk || !window.__db) {
+    document.getElementById('config-note').style.display = 'block';
+    // Use localStorage fallback
+    const ls = localStorage.getItem('spese_local_' + session.codice);
+    const lr = localStorage.getItem('rimborsi_local_' + session.codice);
+    if (ls) spese = JSON.parse(ls);
+    if (lr) rimborsi = JSON.parse(lr);
+    renderAll();
+    return;
+  }
+  const syncBtn = document.getElementById('sync-btn');
+  syncBtn.classList.add('spinning');
+  try {
+    const dbRef = window.__dbRef(window.__db, `famiglie/${session.codice}`);
+    // Real-time listener
+    if (dbListener) window.__dbOff(dbRef);
+    window.__dbOnValue(dbRef, snap => {
+      const data = snap.val() || {};
+      spese = data.spese ? Object.values(data.spese) : [];
+      rimborsi = data.rimborsi ? Object.values(data.rimborsi) : [];
+      spese.sort((a,b) => b.timestamp - a.timestamp);
+      rimborsi.sort((a,b) => b.timestamp - a.timestamp);
+      renderAll();
+      syncBtn.classList.remove('spinning');
+    });
+  } catch(e) {
+    syncBtn.classList.remove('spinning');
+    showToast('Errore connessione', 'info');
+  }
+}
+
+async function syncData() {
+  loadData();
+  showToast('Dati aggiornati ✓', 'ok');
+}
+
+// ── SAVE SPESA ──
+async function saveSpesa() {
+  const desc = document.getElementById('f-desc').value.trim();
+  const importo = parseFloat(document.getElementById('f-importo').value);
+  const data = document.getElementById('f-data').value;
+  const categoria = document.getElementById('f-categoria').value;
+  const pct = parseInt(document.getElementById('split-range').value);
+  const note = document.getElementById('f-note').value.trim();
+  const errEl = document.getElementById('spesa-err');
+  errEl.style.display = 'none';
+  if (!desc) { showErr(errEl, 'Inserisci una descrizione'); return; }
+  if (!importo || importo <= 0) { showErr(errEl, 'Inserisci un importo valido'); return; }
+
+  const nuova = {
+    id: Date.now().toString(),
+    descrizione: desc,
+    importoTotale: importo,
+    percentuale: pct,
+    quotaDovuta: importo * pct / 100,
+    categoria,
+    data,
+    note,
+    pagante: session.profilo,
+    timestamp: Date.now(),
+  };
+
+  const btn = document.getElementById('save-spesa-btn');
+  btn.textContent = 'Salvataggio…';
+  btn.disabled = true;
+
+  try {
+    if (firebaseOk && window.__db) {
+      await window.__dbSet(window.__dbRef(window.__db, `famiglie/${session.codice}/spese/${nuova.id}`), nuova);
+    } else {
+      spese = [nuova, ...spese];
+      localStorage.setItem('spese_local_' + session.codice, JSON.stringify(spese));
+      renderAll();
+    }
+    closeDrawer('spesa-drawer');
+    resetSpesaForm();
+    showToast('Spesa salvata! ✓', 'success');
+  } catch(e) {
+    showErr(errEl, 'Errore nel salvataggio');
+  }
+  btn.textContent = 'Salva spesa';
+  btn.disabled = false;
+}
+
+async function deleteSpesa(id) {
+  if (!confirm('Eliminare questa spesa?')) return;
+  try {
+    if (firebaseOk && window.__db) {
+      await window.__dbRemove(window.__dbRef(window.__db, `famiglie/${session.codice}/spese/${id}`));
+    } else {
+      spese = spese.filter(s => s.id != id);
+      localStorage.setItem('spese_local_' + session.codice, JSON.stringify(spese));
+      renderAll();
+    }
+    showToast('Eliminata', 'info');
+  } catch(e) {}
+}
+
+// ── SAVE RIMBORSO ──
+async function saveRimborso() {
+  const da = document.getElementById('r-da').value;
+  const a = document.getElementById('r-a').value;
+  const importo = parseFloat(document.getElementById('r-importo').value);
+  const data = document.getElementById('r-data').value;
+  const note = document.getElementById('r-note').value.trim();
+  const errEl = document.getElementById('rimborso-err');
+  errEl.style.display = 'none';
+  if (!importo || importo <= 0) { showErr(errEl, 'Inserisci un importo valido'); return; }
+  if (da === a) { showErr(errEl, 'Mittente e destinatario devono essere diversi'); return; }
+
+  const nuovo = {
+    id: Date.now().toString(),
+    da, a, importo, data, note,
+    registratoDa: session.profilo,
+    timestamp: Date.now(),
+  };
+
+  try {
+    if (firebaseOk && window.__db) {
+      await window.__dbSet(window.__dbRef(window.__db, `famiglie/${session.codice}/rimborsi/${nuovo.id}`), nuovo);
+    } else {
+      rimborsi = [nuovo, ...rimborsi];
+      localStorage.setItem('rimborsi_local_' + session.codice, JSON.stringify(rimborsi));
+      renderAll();
+    }
+    closeDrawer('rimborso-drawer');
+    document.getElementById('r-importo').value = '';
+    document.getElementById('r-note').value = '';
+    showToast('Rimborso registrato! 🎉', 'ok');
+  } catch(e) {
+    showErr(errEl, 'Errore nel salvataggio');
+  }
+}
+
+// ── RENDER ──
+function renderAll() {
+  const altroNome = session.profilo === 'Nico' ? 'Lucia' : 'Nico';
+  const totMie = spese.filter(s => s.pagante === session.profilo).reduce((a,s) => a + s.importoTotale, 0);
+  const totAltre = spese.filter(s => s.pagante !== session.profilo).reduce((a,s) => a + s.importoTotale, 0);
+  const totRicevuti = rimborsi.filter(r => r.a === session.profilo).reduce((a,r) => a + r.importo, 0);
+  const totDati = rimborsi.filter(r => r.da === session.profilo).reduce((a,r) => a + r.importo, 0);
+
+  // Calcola saldo netto
+  // Crediti = quote dovute a me dalle spese che ho anticipato
+  const mieiCrediti = spese.filter(s => s.pagante === session.profilo).reduce((a,s) => a + s.quotaDovuta, 0);
+  // Debiti = quote che devo io dalle spese anticipate dall'altro
+  const mieDebiti = spese.filter(s => s.pagante !== session.profilo).reduce((a,s) => a + s.quotaDovuta, 0);
+  // Rimborsi ricevuti riducono i miei crediti; rimborsi dati riducono i miei debiti
+  const saldoNetto = mieiCrediti - mieDebiti - totRicevuti + totDati;
+
+  // HERO
+  const heroEl = document.getElementById('hero-amount');
+  const heroLabelEl = document.getElementById('hero-label');
+  const heroSubEl = document.getElementById('hero-sub');
+  heroEl.textContent = fmt(Math.abs(saldoNetto));
+  if (saldoNetto > 0.5) {
+    heroEl.className = 'hero-amount credit';
+    heroLabelEl.textContent = altroNome + ' ti deve';
+    heroSubEl.textContent = 'Registra un rimborso quando ricevi';
+  } else if (saldoNetto < -0.5) {
+    heroEl.className = 'hero-amount debt';
+    heroLabelEl.textContent = 'Devi a ' + altroNome;
+    heroSubEl.textContent = 'Salda il debito quando puoi';
+  } else {
+    heroEl.className = 'hero-amount zero';
+    heroLabelEl.textContent = 'Siete in pari!';
+    heroSubEl.textContent = 'Nessun debito tra voi 🎉';
+  }
+
+  // STATS
+  document.getElementById('stat-mie').textContent = fmt(totMie);
+  document.getElementById('stat-altre').textContent = fmt(totAltre);
+  document.getElementById('stat-ricevuti').textContent = fmt(totRicevuti);
+
+  renderDashboard(saldoNetto, altroNome);
+  renderSpese();
+  renderRimborsi();
+}
+
+function renderDashboard(saldoNetto, altroNome) {
+  const hasDati = spese.length > 0;
+  document.getElementById('dashboard-empty').style.display = hasDati ? 'none' : 'flex';
+  document.getElementById('cat-section').style.display = hasDati ? 'block' : 'none';
+  document.getElementById('recent-section').style.display = hasDati ? 'block' : 'none';
+
+  // Status banner
+  const banner = document.getElementById('status-banner');
+  if (hasDati) {
+    banner.style.display = 'flex';
+    if (saldoNetto > 0.5) {
+      banner.className = 'status-banner credit';
+      document.getElementById('status-icon').textContent = '⏳';
+      document.getElementById('status-main').innerHTML = `<span style="color:var(--red)">${altroNome} ti deve ${fmt(saldoNetto)}</span>`;
+      document.getElementById('status-sub').textContent = 'Vai su Rimborsi per registrare il pagamento';
+    } else if (saldoNetto < -0.5) {
+      banner.className = 'status-banner debt';
+      document.getElementById('status-icon').textContent = '💳';
+      document.getElementById('status-main').innerHTML = `<span style="color:var(--amber)">Devi ${fmt(Math.abs(saldoNetto))} a ${altroNome}</span>`;
+      document.getElementById('status-sub').textContent = 'Quando paghi, registra il rimborso';
+    } else {
+      banner.className = 'status-banner zero';
+      document.getElementById('status-icon').textContent = '🎊';
+      document.getElementById('status-main').innerHTML = `<span style="color:var(--green)">Tutto in pari!</span>`;
+      document.getElementById('status-sub').textContent = 'Nessun debito tra voi';
+    }
+  } else {
+    banner.style.display = 'none';
+  }
+
+  // Category bars
+  const totaleTutte = spese.reduce((a,s) => a + s.importoTotale, 0);
+  const catBars = document.getElementById('cat-bars');
+  catBars.innerHTML = '';
+  Object.entries(CATEGORIE).forEach(([id, c]) => {
+    const tot = spese.filter(s => s.categoria === id).reduce((a,s) => a + s.importoTotale, 0);
+    if (!tot) return;
+    const pct = totaleTutte ? (tot / totaleTutte * 100) : 0;
+    catBars.innerHTML += `
+      <div class="cat-bar">
+        <div class="cat-bar-top">
+          <span class="cat-bar-name">${c.emoji} ${c.label}</span>
+          <span class="cat-bar-val">${fmt(tot)}</span>
+        </div>
+        <div class="cat-bar-track">
+          <div class="cat-bar-fill" style="width:${pct}%;background:linear-gradient(90deg,${c.color},${c.color}88)"></div>
+        </div>
+      </div>`;
+  });
+
+  // Recent list (last 5)
+  const rl = document.getElementById('recent-list');
+  rl.innerHTML = '';
+  spese.slice(0, 5).forEach(s => { rl.innerHTML += renderTxItem(s); });
+}
+
+function renderSpese() {
+  const list = document.getElementById('spese-list');
+  const empty = document.getElementById('spese-empty');
+  const count = document.getElementById('spese-count');
+  count.textContent = spese.length + ' spese totali';
+  if (spese.length === 0) {
+    list.style.display = 'none';
+    empty.style.display = 'flex';
+  } else {
+    empty.style.display = 'none';
+    list.style.display = 'block';
+    list.innerHTML = spese.map(s => renderTxItem(s, true)).join('');
+  }
+}
+
+function renderRimborsi() {
+  const list = document.getElementById('rimborsi-list');
+  const empty = document.getElementById('rimborsi-empty');
+  const count = document.getElementById('rimborsi-count');
+  count.textContent = rimborsi.length + ' rimborsi';
+  if (rimborsi.length === 0) {
+    list.style.display = 'none';
+    empty.style.display = 'flex';
+  } else {
+    empty.style.display = 'none';
+    list.style.display = 'block';
+    list.innerHTML = rimborsi.map(r => `
+      <div class="tx-item">
+        <div class="tx-icon" style="background:var(--green)15">💚</div>
+        <div class="tx-info">
+          <div class="tx-name">${r.da} → ${r.a}</div>
+          <div class="tx-meta">
+            <span class="tx-date">${fmtDate(r.data)}</span>
+            ${r.note ? `<span class="badge badge-green">${r.note}</span>` : ''}
+          </div>
+        </div>
+        <div class="tx-right">
+          <div class="tx-amount" style="color:var(--green)">+${fmt(r.importo)}</div>
+        </div>
+      </div>`).join('');
+  }
+}
+
+function renderTxItem(s, showDelete = false) {
+  const c = CATEGORIE[s.categoria] || CATEGORIE.altro;
+  const isMine = s.pagante === session.profilo;
+  const amtColor = isMine ? 'var(--red)' : 'var(--amber)';
+  const whoTag = isMine
+    ? `<span class="badge badge-purple">👨 Nico</span>`
+    : `<span class="badge badge-amber">👩 Lucia</span>`;
+  const delBtn = showDelete && isMine
+    ? `<button class="tx-delete" onclick="deleteSpesa('${s.id}')">elimina</button>`
+    : '';
+  return `
+    <div class="tx-item">
+      <div class="tx-icon" style="background:${c.color}18">${c.emoji}</div>
+      <div class="tx-info">
+        <div class="tx-name">${s.descrizione}</div>
+        <div class="tx-meta">
+          <span class="tx-date">${fmtDate(s.data)}</span>
+          <span class="badge" style="background:${c.color}15;color:${c.color}">${c.label}</span>
+          ${whoTag}
+        </div>
+        ${s.note ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;font-style:italic">${s.note}</div>` : ''}
+      </div>
+      <div class="tx-right">
+        <div class="tx-amount" style="color:${amtColor}">${fmt(s.importoTotale)}</div>
+        <div class="tx-quota">quota ${fmt(s.quotaDovuta)}</div>
+        ${delBtn}
+      </div>
+    </div>`;
+}
+
+// ── TABS ──
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  document.getElementById('app-scroll').scrollTo({ top: 0, behavior: 'smooth' });
+  // Show/hide FAB
+  document.querySelector('.fab').style.display = tab === 'spese' || tab === 'dashboard' ? 'flex' : 'none';
+}
+
+// ── DRAWERS ──
+function openSpesaDrawer() {
+  document.getElementById('spesa-drawer').classList.add('open');
+  document.getElementById('f-desc').focus();
+}
+function openRimborsoDrawer() {
+  document.getElementById('rimborso-drawer').classList.add('open');
+}
+function closeDrawer(id) {
+  document.getElementById(id).classList.remove('open');
+}
+function showFirebaseGuide() {
+  closeDrawer('firebase-guide');
+  document.getElementById('firebase-guide').classList.add('open');
+}
+
+// ── SPLIT SLIDER ──
+function updateSplit() {
+  const pct = parseInt(document.getElementById('split-range').value);
+  const importo = parseFloat(document.getElementById('f-importo').value) || 0;
+  const altroNome = session.profilo === 'Nico' ? 'Lucia' : 'Nico';
+  document.getElementById('split-pct-display').textContent = pct + '%';
+  document.getElementById('split-tu').textContent = fmt(importo * (1 - pct / 100));
+  document.getElementById('split-altro').textContent = fmt(importo * pct / 100);
+  document.getElementById('split-altro-name').textContent = altroNome;
+  document.querySelectorAll('.split-preset').forEach(b => {
+    b.classList.toggle('active', parseInt(b.textContent) === pct);
+  });
+}
+function setSplit(pct) {
+  document.getElementById('split-range').value = pct;
+  updateSplit();
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('f-importo').addEventListener('input', updateSplit);
+});
+
+// ── FORM RESET ──
+function resetSpesaForm() {
+  document.getElementById('f-desc').value = '';
+  document.getElementById('f-importo').value = '';
+  document.getElementById('f-data').value = todayISO();
+  document.getElementById('f-categoria').value = 'bollette';
+  document.getElementById('f-note').value = '';
+  setSplit(50);
+}
+
+// ── TOAST ──
+let toastTimer;
+function showToast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.classList.remove('show'); }, 3000);
+}
+
+// ── SERVICE WORKER ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
