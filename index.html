@@ -19,16 +19,16 @@
     import { getDatabase, ref, set, get, push, remove, onValue, off } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     // ── CONFIG ── Sostituisci con la tua config Firebase ──
-    const firebaseConfig = {
-      apiKey: "INSERISCI_API_KEY",
-      authDomain: "INSERISCI_AUTH_DOMAIN",
-      databaseURL: "INSERISCI_DATABASE_URL",
-      projectId: "INSERISCI_PROJECT_ID",
-      storageBucket: "INSERISCI_STORAGE_BUCKET",
-      messagingSenderId: "INSERISCI_SENDER_ID",
-      appId: "INSERISCI_APP_ID"
-    };
-
+ const firebaseConfig = {
+  apiKey: "AIzaSyByZKwgTDLrVxsbZ2Cw_00uAAgCrym7cfQ",
+  authDomain: "spese-di-coppia.firebaseapp.com",
+  databaseURL: "https://spese-di-coppia-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "spese-di-coppia",
+  storageBucket: "spese-di-coppia.firebasestorage.app",
+  messagingSenderId: "158768561733",
+  appId: "1:158768561733:web:7e104fa828d75533962d2c",
+  measurementId: "G-8BPZ06RZSV"
+};
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     window.__db = db;
